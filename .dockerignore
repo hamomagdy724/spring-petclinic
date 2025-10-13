@@ -1,0 +1,12 @@
+# Ignore Git, Maven, and IDE files
+.git
+.gitignore
+.idea/
+*.iml
+mvnw
+mvnw.cmd
+.mvn/
+
+# Build folder is ignored but the final JAR is NOT
+target/
+!target/*.jar

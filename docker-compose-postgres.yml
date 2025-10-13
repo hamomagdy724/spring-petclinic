@@ -1,0 +1,35 @@
+services:
+  # The PetClinic application service
+  petclinic-app:
+    image: petclinic-app
+    ports:
+      - "8085:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      POSTGRES_URL: jdbc:postgresql://postgres-db/postgres
+      POSTGRES_USER: petclinic
+      POSTGRES_PASS: petclinic
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+
+  # The PostgreSQL database service
+  postgres-db:
+    image: postgres:14.1
+    environment:
+      POSTGRES_DB: petclinic
+      POSTGRES_USER: petclinic
+      POSTGRES_PASSWORD: petclinic
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U petclinic -d petclinic"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# define volume name
+volumes:
+  postgres-data:

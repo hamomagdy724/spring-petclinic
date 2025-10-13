@@ -1,0 +1,36 @@
+services:
+  # The PetClinic application service
+  petclinic-app:
+    image: petclinic-app
+    ports:
+      - "8084:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: mysql
+      MYSQL_URL: jdbc:mysql://mysql-db/petclinic
+      MYSQL_USER: petclinic
+      MYSQL_PASS: petclinic 
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+
+  # The MySQL database service
+  mysql-db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: petclinic
+      MYSQL_USER: petclinic
+      MYSQL_PASSWORD: petclinic
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# define volume name
+volumes:
+  mysql-data:
