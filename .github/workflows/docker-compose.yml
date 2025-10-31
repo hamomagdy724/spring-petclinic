@@ -53,3 +53,23 @@ jobs:
           echo "❌ App failed to start in time!"
           docker compose -f docker-compose-postgres.yml logs
           exit 1
+
+      # ✅ Step 7: Functional test of the running app
+      - name: Test Petclinic endpoint
+        run: |
+          echo "🧪 Testing Petclinic main endpoint..."
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8085)
+          if [ "$RESPONSE" = "200" ]; then
+            echo "✅ Petclinic responded successfully (HTTP 200)"
+          else
+            echo "❌ Unexpected HTTP response: $RESPONSE"
+            docker compose -f docker-compose-postgres.yml logs
+            exit 1
+          fi
+
+      # 🧹 Step 8: Stop and clean up
+      - name: Stop and clean up containers
+        if: always()
+        run: |
+          echo "🧹 Cleaning up containers..."
+          docker compose -f docker-compose-postgres.yml down -v
