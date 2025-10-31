@@ -1,75 +1,35 @@
-name: CI/CD - Spring Petclinic with Docker Compose
+name: Simple CI - Spring PetClinic
 
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
-  build-and-deploy:
+  test:
     runs-on: ubuntu-latest
-
     steps:
-      # Step 1: Checkout your repository
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # Step 2: Set up Docker Buildx
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Build Docker image
+        run: docker build -t petclinic-app .
 
-      # Step 3: Build the Petclinic Docker image
-      - name: Build Petclinic Docker image
+      - name: Start app and database
+        run: docker compose -f docker-compose-postgres.yml up -d
+
+      - name: Wait for app
         run: |
-          echo "🛠️ Building Docker image..."
-          docker build -t petclinic-app .
-
-      # Step 4: Stop old containers if any
-      - name: Stop old containers
-        run: |
-          echo "🧹 Cleaning up previous containers..."
-          docker compose -f docker-compose-postgres.yml down -v || true
-
-      # Step 5: Start containers with docker-compose
-      - name: Start containers
-        run: |
-          echo "🚀 Starting PostgreSQL + Petclinic..."
-          docker compose -f docker-compose-postgres.yml up -d
-          docker ps
-
-      # Step 6: Wait for the app to start (retry logic)
-      - name: Wait and verify app health
-        run: |
-          echo "⏳ Waiting for Petclinic to start..."
-          for i in {1..15}; do
+          echo "Waiting for app to start..."
+          for i in {1..10}; do
             if curl -sf http://localhost:8085 > /dev/null; then
-              echo "✅ App is up and reachable on port 8085!"
+              echo "✅ App is running!"
               exit 0
             fi
-            echo "Still waiting... ($i)"
+            echo "⏳ Waiting... ($i)"
             sleep 10
           done
-          echo "❌ App failed to start in time!"
-          docker compose -f docker-compose-postgres.yml logs
+          echo "❌ App failed to start!"
           exit 1
 
-      # ✅ Step 7: Functional test of the running app
-      - name: Test Petclinic endpoint
-        run: |
-          echo "🧪 Testing Petclinic main endpoint..."
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8085)
-          if [ "$RESPONSE" = "200" ]; then
-            echo "✅ Petclinic responded successfully (HTTP 200)"
-          else
-            echo "❌ Unexpected HTTP response: $RESPONSE"
-            docker compose -f docker-compose-postgres.yml logs
-            exit 1
-          fi
-
-      # 🧹 Step 8: Stop and clean up
-      - name: Stop and clean up containers
+      - name: Cleanup
         if: always()
-        run: |
-          echo "🧹 Cleaning up containers..."
-          docker compose -f docker-compose-postgres.yml down -v
+        run: docker compose -f docker-compose-postgres.yml down -v
